@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>My Calendar - Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container my-5">
+    <h1>登入</h1>
+    <form method="POST" action="{{ url_for('login') }}">
+        <div class="mb-3">
+            <label>Email</label>
+            <input type="text" name="email" class="form-control">
+        </div>
+        <div class="mb-3">
+            <label>密碼</label>
+            <input type="password" name="password" class="form-control">
+        </div>
+        <button type="submit" class="btn btn-primary">登入</button>
+    </form>
+</body>
+</html>

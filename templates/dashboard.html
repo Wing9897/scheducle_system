@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Calendar</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css" rel="stylesheet">
+</head>
+<body class="container my-5">
+    <h1 class="mb-4">My Calendar</h1>
+
+    <div class="mb-4">
+        <button class="btn btn-secondary" id="prevMonth">Previous</button>
+        <span id="currentMonth">Loading...</span>
+        <button class="btn btn-secondary" id="nextMonth">Next</button>
+        <a href="{{ url_for('download_ics') }}" class="btn btn-primary me-2">Export Events</a>
+        <a href="{{ url_for('logout') }}" class="btn btn-danger float-end">Logout</a>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div id="calendar"></div>
+        </div>
+        <div class="col-md-4">
+            <h5>Add Event</h5>
+            <form id="eventForm">
+                <div class="mb-3">
+                    <label for="eventTitle" class="form-label">Event Title</label>
+                    <input type="text" class="form-control" id="eventTitle" required>
+                </div>
+                <div class="mb-3">
+                    <label for="eventDescription" class="form-label">Description</label>
+                    <textarea class="form-control" id="eventDescription"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="eventLocation" class="form-label">Location</label>
+                    <input type="text" class="form-control" id="eventLocation">
+                </div>
+                <div class="mb-3">
+                    <label for="eventStart" class="form-label">Start Time</label>
+                    <input type="datetime-local" class="form-control" id="eventStart" required>
+                </div>
+                <div class="mb-3">
+                    <label for="eventEnd" class="form-label">End Time</label>
+                    <input type="datetime-local" class="form-control" id="eventEnd" required>
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-primary" id="saveEventButton">Save Event</button>
+                    <button type="button" class="btn btn-danger" id="deleteEventButton" style="display: none;">Delete Event</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- FullCalendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Initialize FullCalendar
+            var calendar = new FullCalendar.Calendar($('#calendar')[0], {
+                initialView: 'dayGridMonth',
+                events: '/api/events',  // Fetch events from backend
+                dateClick: function(info) {
+                    $('#eventStart').val(info.dateStr + 'T00:00');  
+                    $('#eventEnd').val(info.dateStr + 'T00:00');    
+                },
+                eventClick: function(info) {
+                    $('#eventTitle').val(info.event.title);
+                    $('#eventDescription').val(info.event.extendedProps.description || '');
+                    $('#eventLocation').val(info.event.extendedProps.location || '');
+                    $('#eventStart').val(info.event.start.toISOString().slice(0, 16));
+                    $('#eventEnd').val(info.event.end ? info.event.end.toISOString().slice(0, 16) : '');
+
+                    // Show delete button and store current event
+                    $('#deleteEventButton').show().data('event', info.event);
+                }
+            });
+
+            calendar.render();
+
+            // Update month label
+            function updateMonthLabel() {
+                var currentDate = calendar.getDate();
+                var month = currentDate.toLocaleString('default', { month: 'long' });
+                var year = currentDate.getFullYear();
+                $('#currentMonth').text(`${month} ${year}`);
+            }
+            updateMonthLabel();
+
+            // Switch months
+            $('#prevMonth').click(function() {
+                calendar.prev();
+                updateMonthLabel();
+            });
+
+            $('#nextMonth').click(function() {
+                calendar.next();
+                updateMonthLabel();
+            });
+
+            // Save event
+            $('#saveEventButton').click(function() {
+                var eventTitle = $('#eventTitle').val();
+                var eventDescription = $('#eventDescription').val();
+                var eventLocation = $('#eventLocation').val();
+                var eventStart = $('#eventStart').val();
+                var eventEnd = $('#eventEnd').val();
+
+                if (eventTitle && eventStart && eventEnd) {
+                    var eventData = {
+                        summary: eventTitle,
+                        description: eventDescription,
+                        location: eventLocation,
+                        dtstart: eventStart,
+                        dtend: eventEnd,
+                        timezone: "Asia/Taipei",
+                        visibility: "public"
+                    };
+
+                    $.ajax({
+                        url: '/api/events',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ event: eventData }),
+                        success: function(response) {
+                            alert('Event created successfully');
+
+                            // Ensure event shows in FullCalendar
+                            calendar.addEvent({
+                                id: response.event._id,  // Use _id
+                                title: response.event.summary,
+                                start: response.event.dtstart,
+                                end: response.event.dtend,
+                                extendedProps: {
+                                    _id: response.event._id,  // Add _id to extendedProps
+                                    description: response.event.description,
+                                    location: response.event.location
+                                }
+                            });
+
+                            $('#eventForm')[0].reset();
+                        },
+                        error: function(xhr, status, error) {
+                            alert('Error creating event');
+                        }
+                    });
+                }
+            });
+
+            // Handle delete button click
+            $('#deleteEventButton').click(function() {
+                var event = $(this).data('event');
+                if (event && confirm('Are you sure you want to delete this event?')) {
+                    var eventId = event.extendedProps._id;
+                    if (eventId) {
+                        $.ajax({
+                            url: '/api/events/' + eventId,
+                            method: 'DELETE',
+                            success: function() {
+                                event.remove();
+                                alert('Event deleted successfully');
+                                $('#deleteEventButton').hide();
+                                $('#eventForm')[0].reset();
+                            },
+                            error: function() {
+                                alert('Error deleting event');
+                            }
+                        });
+                    } else {
+                        alert('Error: Event ID not found');
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

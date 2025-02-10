@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>My Calendar - Create Event</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container my-5">
+    <h1>新增事件</h1>
+    <form method="POST" action="{{ url_for('create_event_page') }}">
+        <div class="mb-3">
+            <label>事件標題</label>
+            <input type="text" name="summary" class="form-control">
+        </div>
+        <div class="mb-3">
+            <label>事件描述</label>
+            <textarea name="description" class="form-control"></textarea>
+        </div>
+        <div class="mb-3">
+            <label>地點</label>
+            <input type="text" name="location" class="form-control">
+        </div>
+        <div class="mb-3">
+            <label>開始時間 (ISO8601)</label>
+            <input type="text" name="dtstart" class="form-control" placeholder="2025-02-10T10:00:00Z">
+        </div>
+        <div class="mb-3">
+            <label>結束時間 (ISO8601)</label>
+            <input type="text" name="dtend" class="form-control" placeholder="2025-02-10T11:00:00Z">
+        </div>
+        <div class="mb-3">
+            <label>時區</label>
+            <input type="text" name="timezone" class="form-control" placeholder="Asia/Taipei">
+        </div>
+        <div class="mb-3">
+            <label>可見性</label>
+            <select name="visibility" class="form-select">
+                <option value="public">Public</option>
+                <option value="private">Private</option>
+                <option value="confidential">Confidential</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">建立</button>
+    </form>
+</body>
+</html>
